@@ -27,9 +27,17 @@ class Tag(models.Model):
 
 
 class Project(models.Model):
+    STATUS_ACTIVE = 'active'
+    STATUS_COMPLETED = 'completed'
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, 'Active'),
+        (STATUS_COMPLETED, 'Completed'),
+    ]
+
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_projects')
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
@@ -94,16 +102,5 @@ class NoteTag(models.Model):
     class Meta:
         unique_together = ('note', 'tag')
 
-
-# Advanced query helpers
-def generate_project_bibliography(project: Project) -> str:
-    sources = Source.objects.filter(source_projects__project=project).distinct()
-    entries: list[str] = []
-    for source in sources:
-        author = source.author or 'Unknown Author'
-        year = source.publication_year if source.publication_year else 'n.d.'
-        title = source.title
-        entries.append(f"{author} ({year}). {title}.")
-    return "\n".join(entries)
 
 # Create your models here.
