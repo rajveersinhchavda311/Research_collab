@@ -8,7 +8,6 @@ const Projects = () => {
   const { logout } = useAuth()
   const [activeTab, setActiveTab] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(false)
@@ -125,13 +124,12 @@ const Projects = () => {
     { label: "Completed", value: String(numCompleted), icon: "📄", type: "publications" },
   ]
 
-  // Filter projects based on search and status
+  // Filter projects based on search and tab only
   const filteredProjects = projects.filter((project) => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) || (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()))
     const isActive = project.status !== 'completed'
-    const matchesStatus = filterStatus === "all" || (filterStatus === "active" && isActive) || (filterStatus === "completed" && project.status === 'completed')
     const matchesTab = activeTab === "all" || (activeTab === "active" && isActive) || (activeTab === "completed" && project.status === 'completed')
-    return matchesSearch && matchesStatus && matchesTab
+    return matchesSearch && matchesTab
   })
 
   const getStatusBadge = (status) => {
@@ -182,11 +180,6 @@ const Projects = () => {
         {/* Controls */}
         <div className="controls">
           <input type="text" placeholder="Search projects..." className="search-input" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          <select className="filter-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-          </select>
         </div>
 
         {/* Projects Grid */}
