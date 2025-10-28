@@ -11,6 +11,13 @@ const Projects = () => {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(false)
+  const [me, setMe] = useState(null)
+  // Fetch and store incoming access requests per project id (only for owned projects)
+  const [incomingByProject, setIncomingByProject] = useState({})
+
+  // username search
+  const [userSearch, setUserSearch] = useState("")
+  const [userProjects, setUserProjects] = useState([])
 
   const [newProject, setNewProject] = useState({
     title: "",
@@ -29,6 +36,47 @@ const Projects = () => {
       localStorage.setItem('projectNotes', JSON.stringify(notes))
     }
   }, [notes])
+
+  const fetchMe = async () => {
+    try {
+      const { data } = await api.get("auth/me/")
+      setMe(data)
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Load incoming access requests for owned projects
+  const loadIncoming = async () => {
+    if (!me) return
+    try {
+      const owned = projects.filter(p => p.owner?.id === me.id)
+      const next = {}
+      await Promise.all(
+        owned.map(async (p) => {
+          try {
+            const { data } = await api.get(`projects/${p.id}/incoming_requests/`)
+            next[p.id] = data
+          } catch (_) {
+            next[p.id] = []
+          }
+        })
+      )
+      setIncomingByProject(next)
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  const approveRequest = async (projectId, requestId) => {
+    try {
+      await api.post(`projects/${projectId}/approve_request/`, { request_id: requestId })
+      await loadIncoming()
+      await fetchProjects()
+    } catch (e) {
+      alert(e?.response?.data?.detail || "Approve failed")
+    }
+  }
 
   // Fetch real projects from Django backend
   const fetchProjects = async () => {
@@ -62,7 +110,8 @@ const Projects = () => {
     }
   }
 
-  useEffect(() => { fetchProjects() }, [])
+  useEffect(() => { fetchMe(); fetchProjects() }, [])
+  useEffect(() => { loadIncoming() }, [me, projects])
 
   // Create real project in Django backend
   const handleCreateProject = async (e) => {
@@ -92,6 +141,26 @@ const Projects = () => {
       await fetchProjects()
     } catch (e) {
       console.error("Error completing project", e)
+    }
+  }
+
+  const handleDelete = async (projectId) => {
+    if (!confirm("Delete this project? This cannot be undone.")) return
+    try {
+      await api.delete(`projects/${projectId}/`)
+      await fetchProjects()
+    } catch (e) {
+      alert(e?.response?.data?.detail || "Delete failed")
+    }
+  }
+
+  const searchByUsername = async () => {
+    if (!userSearch.trim()) return
+    try {
+      const { data } = await api.get(`projects/by_username/`, { params: { username: userSearch.trim() } })
+      setUserProjects(data)
+    } catch (e) {
+      setUserProjects([])
     }
   }
 
@@ -150,6 +219,29 @@ const Projects = () => {
         </div>
       </section>
 
+      {/* Search other users */}
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", margin: "0 0 1rem 0" }}>
+        <input type="text" placeholder="Search by username..." value={userSearch} onChange={(e)=>setUserSearch(e.target.value)} className="search-input" />
+        <button className="create-btn" onClick={searchByUsername}>Search</button>
+      </div>
+      {userProjects.length > 0 && (
+        <div className="projects-section" style={{ marginBottom: "1.5rem" }}>
+          <div className="section-header"><h2 className="section-title">Projects by {userSearch}</h2></div>
+          <div className="projects-grid">
+            {userProjects.map(p => (
+              <div key={p.id} className="project-card">
+                <div className="project-header"><div><h3 className="project-title">{p.title}</h3>{getStatusBadge(p.status)}</div></div>
+                <p className="project-description">{p.description || "No description"}</p>
+                <div className="project-meta">
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Owner: {p.owner?.username || "Unknown"}</span>
+                  <button onClick={async () => { await api.post(`projects/${p.id}/request_access/`); alert("Access requested") }} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full hover:bg-blue-200" style={{ fontSize: "0.75rem" }}>Request access</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Statistics */}
       <div className="stats-grid">
         {stats.map((stat, index) => (
@@ -164,7 +256,7 @@ const Projects = () => {
       {/* Projects Section */}
       <section className="projects-section">
         <div className="section-header">
-          <h2 className="section-title">Research Projects</h2>
+          <h2 className="section-title">Your Projects</h2>
           <button className="create-btn" onClick={() => setShowCreateForm(true)}><span>+</span>New Project</button>
         </div>
 
@@ -191,6 +283,9 @@ const Projects = () => {
                   <h3 className="project-title">{project.title}</h3>
                   {getStatusBadge(project.status)}
                 </div>
+                {me && project.owner?.id === me.id && (
+                  <button onClick={() => handleDelete(project.id)} className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full hover:bg-red-200" style={{ height: "32px" }}>Delete</button>
+                )}
               </div>
 
               <p className="project-description">{project.description || "No description"}</p>
@@ -212,13 +307,13 @@ const Projects = () => {
                             <input type="text" value={editText} onChange={(e) => setEditText(e.target.value)} style={{ flex: 1, padding: "0.5rem", border: "1px solid #0288d1", borderRadius: "0.25rem", fontSize: "0.875rem" }} onKeyPress={(e) => e.key === "Enter" && saveEditNote(project.id, note.id)} />
                             <button onClick={() => saveEditNote(project.id, note.id)} style={{ padding: "0.25rem 0.5rem", background: "#10b981", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.75rem" }}>Save</button>
                             <button onClick={cancelEdit} style={{ padding: "0.25rem 0.5rem", background: "#6b7280", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.75rem" }}>Cancel</button>
-                          </div>
+                </div>
                         ) : (<div style={{ color: "#0d47a1", lineHeight: "1.4" }}>{note.text}</div>)}
                         <div style={{ position: "absolute", top: "0.5rem", right: "0.5rem", display: "flex", gap: "0.25rem" }}>
                           {editingNote !== note.id && (<button onClick={() => startEditNote(note)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "0.75rem", padding: "0.25rem" }} title="Edit note">✏️</button>)}
                           <button onClick={() => removeNote(project.id, note.id)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.75rem", padding: "0.25rem" }} title="Delete note">🗑️</button>
-                        </div>
-                      </div>
+                </div>
+              </div>
                     ))}
                   </div>
                 )}
@@ -239,6 +334,35 @@ const Projects = () => {
                   <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full" style={{ fontSize: "0.75rem" }}>Finished</span>
                 )}
               </div>
+
+              {me && project.owner?.id === me.id && (
+                <div style={{ marginTop: "0.75rem", borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                      Incoming Requests ({(incomingByProject[project.id] || []).length})
+                    </div>
+                    <button
+                      onClick={loadIncoming}
+                      className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200"
+                      style={{ fontSize: "0.7rem" }}
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                  {((incomingByProject[project.id] || []).length === 0) ? (
+                    <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>No pending requests</div>
+                  ) : (
+                    <div style={{ display: "grid", gap: "0.5rem" }}>
+                      {(incomingByProject[project.id] || []).map((req) => (
+                        <div key={req.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "0.85rem" }}>{req.requester?.username || "User"}</span>
+                          <button onClick={() => approveRequest(project.id, req.id)} className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm rounded-full hover:bg-emerald-200" style={{ fontSize: "0.75rem" }}>Approve</button>
+                      </div>
+                    ))}
+                  </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -2,14 +2,9 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from .models import (
-    UserProfile,
-    Tag,
     Project,
-    Source,
-    ProjectSource,
     ProjectCollaborator,
-    Note,
-    NoteTag,
+    AccessRequest,
 )
 
 
@@ -17,26 +12,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "email"]
-
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-
-    class Meta:
-        model = UserProfile
-        fields = ["id", "user", "role"]
-
-
-class TagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tag
-        fields = ["id", "name"]
-
-
-class SourceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Source
-        fields = ["id", "title", "author", "publication_year", "type"]
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -56,22 +31,12 @@ class ProjectCollaboratorSerializer(serializers.ModelSerializer):
         read_only_fields = ["joined_at"]
 
 
-class ProjectSourceSerializer(serializers.ModelSerializer):
+class AccessRequestSerializer(serializers.ModelSerializer):
+    requester = UserSerializer(read_only=True)
+
     class Meta:
-        model = ProjectSource
-        fields = ["id", "project", "source"]
-
-
-class NoteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Note
-        fields = ["id", "text", "source", "user", "created_at"]
-        read_only_fields = ["created_at"]
-
-
-class NoteTagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = NoteTag
-        fields = ["id", "note", "tag"]
+        model = AccessRequest
+        fields = ["id", "project", "requester", "status", "created_at"]
+        read_only_fields = ["status", "created_at", "requester"]
 
 
