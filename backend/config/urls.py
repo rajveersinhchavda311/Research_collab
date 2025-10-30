@@ -18,7 +18,6 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-'''all below are routes'''
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('research.urls')),

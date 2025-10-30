@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
+import api from "../api";
 
 export default function Login() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [view, setView] = useState("login"); // 'login' | 'register' | 'forgot'
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [err, setErr] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -12,31 +19,139 @@ export default function Login() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
+
     try {
-      await login(username, password);
-      navigate("/projects");
+      if (view === "register") {
+        if (password !== confirmPassword) {
+          setErr("Passwords do not match");
+          return;
+        }
+        await api.post("auth/register/", { username, password });
+      }
+
+      if (view === "login" || view === "register") {
+        await login(username, password);
+        navigate("/projects");
+        return;
+      }
+
+      // forgot view (placeholder only)
+      setView("login");
     } catch (e) {
-      setErr("Invalid credentials");
+      setErr(e?.response?.data?.detail || "Request failed");
     }
   };
 
+  const styles = {
+    page: {
+      minHeight: "100vh",
+      display: "grid",
+      gridTemplateColumns: "1fr",
+      background: "var(--background)",
+    },
+    gridDesktop: {
+      gridTemplateColumns: "1fr 1fr",
+    },
+    leftPanel: {
+      display: "none",
+    },
+    leftPanelDesktop: {
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      padding: "48px",
+      background: "#3F3FF3",
+      color: "#fff",
+      minHeight: "100%",
+    },
+    brandRow: { display: "flex", alignItems: "center" },
+    brandLogo: {
+      width: "32px",
+      height: "32px",
+      background: "#fff",
+      borderRadius: "8px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: "12px",
+    },
+    cardWrap: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "32px",
+      background: "var(--background)",
+    },
+    card: {
+      width: "100%",
+      maxWidth: "440px",
+      background: "#fff",
+      border: "1px solid var(--border)",
+      borderRadius: "16px",
+      boxShadow: "0 6px 24px rgba(0,0,0,0.06)",
+      padding: "28px",
+    },
+    headerRow: { display: "flex", justifyContent: "space-between", marginBottom: "12px" },
+    h1: { fontSize: "22px", fontWeight: 600, color: "var(--text-primary)" },
+    hint: { color: "var(--text-secondary)", fontSize: "14px", marginBottom: "16px" },
+    label: { display: "block", fontSize: "13px", color: "var(--text-secondary)", marginBottom: "6px" },
+    input: {
+      width: "100%",
+      height: "44px",
+      border: "1px solid var(--border)",
+      borderRadius: "10px",
+      padding: "0 12px",
+      background: "#fff",
+      color: "var(--text-primary)",
+    },
+    inputRow: { marginBottom: "14px" },
+    inputAffix: { position: "relative" },
+    toggleBtn: {
+      position: "absolute",
+      right: 0,
+      top: 0,
+      height: "44px",
+      padding: "0 10px",
+      border: 0,
+      background: "transparent",
+      color: "var(--text-secondary)",
+      cursor: "pointer",
+    },
+    linkBtn: { border: 0, background: "transparent", color: "#3F3FF3", cursor: "pointer" },
+    submit: {
+      width: "100%",
+      height: "44px",
+      border: 0,
+      borderRadius: "10px",
+      background: "#3F3FF3",
+      color: "#fff",
+      fontWeight: 600,
+      cursor: "pointer",
+      marginTop: "6px",
+    },
+    rowBetween: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+    checkboxLabel: { display: "flex", alignItems: "center", gap: "8px", color: "var(--text-secondary)", fontSize: "14px" },
+    err: { color: "#dc2626", fontSize: "14px" },
+    mobileBrand: { textAlign: "center", marginBottom: "16px" },
+  };
+
+  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm bg-white shadow rounded p-6 space-y-4">
-        <h1 className="text-xl font-semibold">Sign in</h1>
-        {err && <div className="text-sm text-red-600">{err}</div>}
-        <div>
-          <label className="block text-sm mb-1">Username</label>
-          <input className="w-full border rounded px-3 py-2" value={username} onChange={(e)=>setUsername(e.target.value)} required />
+    <div style={{ ...styles.page, ...(isDesktop ? styles.gridDesktop : {}) }}>
+      {/* Left brand panel (desktop only) */}
+      <div style={isDesktop ? styles.leftPanelDesktop : styles.leftPanel}>
+        <div style={styles.brandRow}>
+          <div style={styles.brandLogo}>
+            <div style={{ width: "16px", height: "16px", borderRadius: "4px", background: "#3F3FF3" }} />
+          </div>
+          <div style={{ fontSize: "18px", fontWeight: 600 }}>ResearchHub</div>
         </div>
-        <div>
-          <label className="block text-sm mb-1">Password</label>
-          <input type="password" className="w-full border rounded px-3 py-2" value={password} onChange={(e)=>setPassword(e.target.value)} required />
+
+        <div style={{ maxWidth: "520px" }}>
+          <div style={{ fontSize: "36px", fontWeight: 600, lineHeight: 1.2, marginBottom: "12px" }}>Effortlessly manage your research projects.</div>
+          <div style={{ opacity: 0.95, fontSize: "18px" }}>Sign in to collaborate, organize sources, and track progress.</div>
         </div>
-<<<<<<< Updated upstream
-        <button className="w-full bg-black text-white py-2 rounded hover:bg-gray-800">Login</button>
-      </form>
-=======
 
         <div style={{ display: "flex", justifyContent: "space-between", opacity: 0.9, fontSize: "14px" }}>
           <span>Copyright © 2025 ResearchHub</span>
@@ -46,7 +161,7 @@ export default function Login() {
 
       {/* Right auth card */}
       <div style={styles.cardWrap}>
-  <div className="auth-card" style={styles.card}>
+        <div style={styles.card}>
           {/* Mobile brand */}
           {!isDesktop && (
             <div style={styles.mobileBrand}>
@@ -74,7 +189,7 @@ export default function Login() {
           <div style={styles.hint}>
             {view === "login" && "Enter your username and password to access your account."}
             {view === "register" && "Create a new account to get started."}
-            {view === "forgot" && "Enter your email and we'll send you a reset link."}
+            {view === "forgot" && "Enter your username and we'll send you a reset link."}
           </div>
 
           <form onSubmit={onSubmit}>
@@ -86,13 +201,13 @@ export default function Login() {
             )}
 
             <div style={styles.inputRow}>
-              <label style={styles.label}>{view === "forgot" ? "Email" : "Username"}</label>
+              <label style={styles.label}>Username</label>
               <input
                 style={styles.input}
-                type={view === "forgot" ? "email" : "text"}
-                placeholder={view === "forgot" ? "user@company.com" : "your username"}
-                value={view === "forgot" ? email : username}
-                onChange={(e) => (view === "forgot" ? setEmail(e.target.value) : setUsername(e.target.value))}
+                type="text"
+                placeholder="your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
@@ -166,7 +281,6 @@ export default function Login() {
           </div>
         </div>
       </div>
->>>>>>> Stashed changes
     </div>
   );
 }
