@@ -68,8 +68,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         project = self.get_object()
-        if project.owner_id != request.user.id:
-            return response.Response({"detail": "Only the owner can delete this project"}, status=status.HTTP_403_FORBIDDEN)
+        is_manager = ProjectCollaborator.objects.filter(project=project, user=request.user, role="manager").exists()
+        if project.owner_id != request.user.id and not is_manager:
+            return response.Response({"detail": "Only the owner or a manager can delete this project"}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
     @decorators.action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
@@ -148,3 +149,11 @@ class ProjectCollaboratorViewSet(viewsets.ModelViewSet):
     queryset = ProjectCollaborator.objects.select_related("project", "user")
     serializer_class = ProjectCollaboratorSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        project = self.request.query_params.get("project")
+        qs = ProjectCollaborator.objects.select_related("project", "user")
+        if project:
+            qs = qs.filter(project_id=project, user=user)
+        return qs

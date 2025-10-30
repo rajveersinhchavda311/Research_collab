@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../AuthContext"
 import api from "../api"
+import { fetchMyCollaboratorRole } from "../utils/collabRole"
 
 const Projects = () => {
   const { logout } = useAuth()
@@ -30,6 +31,30 @@ const Projects = () => {
   const [editingNote, setEditingNote] = useState(null)
   const [editText, setEditText] = useState("")
 
+  // Store collaborator roles for each project (projectId -> role)
+  const [myRoles, setMyRoles] = useState({});
+  // Fetch and store my collaborator role for each project (if not owner)
+  useEffect(() => {
+    if (!me || projects.length === 0) return;
+    const fetchRoles = async () => {
+      const roles = {};
+      for (const project of projects) {
+        if (project.owner?.id === me.id) {
+          roles[project.id] = "owner";
+        } else {
+          const role = await fetchMyCollaboratorRole(project.id, me);
+          // Only set role if we got a valid value
+          if (role && ["viewer", "editor", "manager"].includes(role)) {
+            roles[project.id] = role;
+          }
+        }
+      }
+      // Force role state update for all projects
+      setMyRoles({...roles});
+    };
+    // Refresh roles whenever current user or projects change
+    fetchRoles();
+  }, [me, projects]);
   // Save notes to localStorage whenever notes change
   useEffect(() => {
     if (Object.keys(notes).length > 0) {
@@ -296,17 +321,26 @@ const Projects = () => {
                     Delete
                   </button>
                 )}
+                {me && myRoles[project.id] === "manager" && project.owner?.id !== me.id && (
+                  <button onClick={() => handleDelete(project.id)}
+                    style={{ padding: "0.5rem 1rem", background: "#ef4444", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.875rem", fontWeight: 500, marginLeft: "0.5rem" }}>
+                    Delete
+                  </button>
+                )}
               </div>
 
               <p className="project-description">{project.description || "No description"}</p>
 
               {/* Quick Notes Section */}
               <div className="notes-section" style={{ marginBottom: "1rem" }}>
-                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                  <input type="text" placeholder="Add a quick note..." defaultValue="" style={{ flex: 1, padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "0.25rem", fontSize: "0.875rem", backgroundColor: "#f8fafc" }}
-                    onKeyPress={(e) => { if (e.key === "Enter") { addNote(project.id, e.target.value); e.target.value = "" } }} />
-                  <button onClick={(e) => { const input = e.target.previousElementSibling; addNote(project.id, input.value); input.value = "" }} style={{ padding: "0.5rem 1rem", background: "#3b82f6", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.875rem", fontWeight: "500" }}>Add</button>
-                </div>
+                {/* Only editors, managers, and owners can add notes */}
+                {(project.owner?.id === me?.id || ["editor", "manager"].includes(myRoles[project.id])) && (
+                  <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                    <input type="text" placeholder="Add a quick note..." defaultValue="" style={{ flex: 1, padding: "0.5rem", border: "1px solid #e2e8f0", borderRadius: "0.25rem", fontSize: "0.875rem", backgroundColor: "#f8fafc" }}
+                      onKeyPress={(e) => { if (e.key === "Enter") { addNote(project.id, e.target.value); e.target.value = "" } }} />
+                    <button onClick={(e) => { const input = e.target.previousElementSibling; addNote(project.id, input.value); input.value = "" }} style={{ padding: "0.5rem 1rem", background: "#3b82f6", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.875rem", fontWeight: "500" }}>Add</button>
+                  </div>
+                )}
                 {notes[project.id] && notes[project.id].length > 0 && (
                   <div style={{ marginTop: "0.5rem" }}>
                     {notes[project.id].map(note => (
@@ -317,15 +351,18 @@ const Projects = () => {
                             <input type="text" value={editText} onChange={(e) => setEditText(e.target.value)} style={{ flex: 1, padding: "0.5rem", border: "1px solid #0288d1", borderRadius: "0.25rem", fontSize: "0.875rem" }} onKeyPress={(e) => e.key === "Enter" && saveEditNote(project.id, note.id)} />
                             <button onClick={() => saveEditNote(project.id, note.id)} style={{ padding: "0.25rem 0.5rem", background: "#10b981", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.75rem" }}>Save</button>
                             <button onClick={cancelEdit} style={{ padding: "0.25rem 0.5rem", background: "#6b7280", color: "white", border: "none", borderRadius: "0.25rem", cursor: "pointer", fontSize: "0.75rem" }}>Cancel</button>
-                </div>
+                          </div>
                         ) : (<div style={{ color: "#0d47a1", lineHeight: "1.4" }}>{note.text}</div>)}
-                        <div style={{ position: "absolute", top: "0.5rem", right: "0.5rem", display: "flex", gap: "0.25rem" }}>
-                          {editingNote !== note.id && (<button onClick={() => startEditNote(note)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "0.75rem", padding: "0.25rem" }} title="Edit note">✏️</button>)}
-                          <button onClick={() => removeNote(project.id, note.id)}
-                            style={{ background: "none", border: "none", color: "#222", cursor: "pointer", fontSize: "0.8rem", padding: "0.25rem" }}
-                            title="Delete note">🗑️</button>
-                </div>
-              </div>
+                        {/* Only managers, owners, and editors can edit/delete notes */}
+                        {(project.owner?.id === me?.id || ["editor", "manager"].includes(myRoles[project.id])) && (
+                          <div style={{ position: "absolute", top: "0.5rem", right: "0.5rem", display: "flex", gap: "0.25rem" }}>
+                            {editingNote !== note.id && (<button onClick={() => startEditNote(note)} style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "0.75rem", padding: "0.25rem" }} title="Edit note">✏️</button>)}
+                            <button onClick={() => removeNote(project.id, note.id)}
+                              style={{ background: "none", border: "none", color: "#222", cursor: "pointer", fontSize: "0.8rem", padding: "0.25rem" }}
+                              title="Delete note">🗑️</button>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
