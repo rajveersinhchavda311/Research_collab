@@ -92,7 +92,7 @@ export default function Login() {
       padding: "28px",
     },
     headerRow: { display: "flex", justifyContent: "space-between", marginBottom: "12px" },
-    h1: { fontSize: "22px", fontWeight: 600, color: "var(--text-primary)" },
+    h1: { fontSize: "22px", fontWeight: 600, color: "#3F3FF3" },
     hint: { color: "var(--text-secondary)", fontSize: "14px", marginBottom: "16px" },
     label: { display: "block", fontSize: "13px", color: "var(--text-secondary)", marginBottom: "6px" },
     input: {
@@ -102,7 +102,7 @@ export default function Login() {
       borderRadius: "10px",
       padding: "0 12px",
       background: "#fff",
-      color: "var(--text-primary)",
+      color: "#000000",
     },
     inputRow: { marginBottom: "14px" },
     inputAffix: { position: "relative" },
