@@ -730,6 +730,28 @@ body {
   transform: translateY(0);
 }
 
+/* Small pill-style button variants for compact actions */
+.pill-btn {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.12s ease;
+}
+.pill-btn:hover { transform: translateY(-1px); }
+.pill-btn.primary { background: linear-gradient(135deg, var(--primary-500), var(--primary-600)); color: white; }
+.pill-btn.success { background: linear-gradient(135deg, var(--primary-500), #10b981); color: white; }
+.pill-btn.danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+.pill-btn.ghost { background: none; border: 1px solid var(--border); color: var(--text-secondary); }
+
+/* small variant when using pill-btn as a non-interactive label */
+.pill-btn[disabled], .pill-btn.disabled { opacity: 0.8; cursor: default; transform: none; }
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .header {
@@ -792,4 +814,11 @@ body {
 }
 .project-card:nth-child(4) {
   animation-delay: 0.4s;
+}
+
+/* Auth card: ensure typed text is black (scoped to auth form only) */
+.auth-card input,
+.auth-card textarea,
+.auth-card select {
+  color: #000 !important;
 }

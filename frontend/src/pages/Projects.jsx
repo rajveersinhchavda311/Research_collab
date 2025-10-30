@@ -233,6 +233,32 @@ const Projects = () => {
         </div>
       </section>
 
+<<<<<<< Updated upstream
+=======
+      {/* Search other users */}
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", margin: "0 0 1rem 0" }}>
+        <input type="text" placeholder="Search by username..." value={userSearch} onChange={(e)=>setUserSearch(e.target.value)} className="search-input" />
+        <button className="create-btn" onClick={searchByUsername}>Search</button>
+      </div>
+      {userProjects.length > 0 && (
+        <div className="projects-section" style={{ marginBottom: "1.5rem" }}>
+          <div className="section-header"><h2 className="section-title">Projects by {userSearch}</h2></div>
+          <div className="projects-grid">
+            {userProjects.map(p => (
+              <div key={p.id} className="project-card">
+                <div className="project-header"><div><h3 className="project-title">{p.title}</h3>{getStatusBadge(p.status)}</div></div>
+                <p className="project-description">{p.description || "No description"}</p>
+                <div className="project-meta">
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Owner: {p.owner?.username || "Unknown"}</span>
+                  <button onClick={async () => { await api.post(`projects/${p.id}/request_access/`); alert("Access requested") }} className="pill-btn primary">Request access</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+>>>>>>> Stashed changes
       {/* Statistics */}
       <div className="stats-grid">
         {stats.map((stat, index) => (
@@ -293,12 +319,19 @@ const Projects = () => {
                     Active
                   </span>
                 </div>
+<<<<<<< Updated upstream
+=======
+                {me && project.owner?.id === me.id && (
+                  <button onClick={() => handleDelete(project.id)} className="pill-btn danger">Delete</button>
+                )}
+>>>>>>> Stashed changes
               </div>
 
               <p className="project-description">{project.description || "No description"}</p>
 
               {/* Quick Notes Section */}
               <div className="notes-section" style={{ marginBottom: "1rem" }}>
+<<<<<<< Updated upstream
                 <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
                   <input
                     type="text"
@@ -338,6 +371,12 @@ const Projects = () => {
                   >
                     Add
                   </button>
+=======
+                  <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                  <input type="text" placeholder="Add a quick note..." defaultValue="" style={{ flex: 1, padding: "0.5rem", border: "1px solid var(--border)", borderRadius: "0.25rem", fontSize: "0.875rem", backgroundColor: "var(--neutral-50)" }}
+                    onKeyPress={(e) => { if (e.key === "Enter") { addNote(project.id, e.target.value); e.target.value = "" } }} />
+                  <button onClick={(e) => { const input = e.target.previousElementSibling; addNote(project.id, input.value); input.value = "" }} className="pill-btn primary">Add</button>
+>>>>>>> Stashed changes
                 </div>
                 
                 {/* Display Notes */}
@@ -464,6 +503,7 @@ const Projects = () => {
               </div>
 
               <div className="project-meta">
+<<<<<<< Updated upstream
                 <div className="collaborators">
                   <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Owner:</span>
                   <div className="collaborator-avatars">
@@ -475,6 +515,37 @@ const Projects = () => {
                       {(project.owner?.username || "U").charAt(0).toUpperCase()}
                     </div>
                   </div>
+=======
+                <div className="collaborators"><span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Owner:</span>
+                  <div className="collaborator-avatars"><div className="collaborator-avatar" style={{ backgroundColor: "#10b981" }} title={project.owner?.username || "Unknown"}>{(project.owner?.username || "U").charAt(0).toUpperCase()}</div></div>
+                </div>
+                {project.status !== 'completed' ? (
+                  <button onClick={() => handleComplete(project.id)} className="pill-btn success">Mark as Completed</button>
+                ) : (
+                  <span className="pill-btn" style={{ background: "var(--primary-50)", color: "var(--primary-700)" }}>Finished</span>
+                )}
+              </div>
+
+              {me && project.owner?.id === me.id && (
+                <div style={{ marginTop: "0.75rem", borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                      Incoming Requests ({(incomingByProject[project.id] || []).length})
+                    </div>
+                  </div>
+                  {((incomingByProject[project.id] || []).length === 0) ? (
+                    <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>No pending requests</div>
+                  ) : (
+                    <div style={{ display: "grid", gap: "0.5rem" }}>
+                      {(incomingByProject[project.id] || []).map((req) => (
+                        <div key={req.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "0.85rem" }}>{req.requester?.username || "User"}</span>
+                          <button onClick={() => approveRequest(project.id, req.id)} className="pill-btn success">Accept</button>
+                      </div>
+                    ))}
+                  </div>
+                  )}
+>>>>>>> Stashed changes
                 </div>
                 <button
                   onClick={() => viewBibliography(project.id)}
